@@ -60,7 +60,6 @@ let prevSnake = null;
 let running = false;
 let paused = false;
 let ready = false;
-let readyLeft = 0;
 let acc = 0;
 let tickPart = 0;
 let lastFrame = 0;
@@ -379,21 +378,16 @@ function frame(now) {
   lastFrame = now;
   clock += dt;
 
-  if (running && !paused) {
-    if (ready) {
-      readyLeft -= dt;
-      if (readyLeft <= 0) ready = false;
-    } else {
-      const tick = speedFor(state);
-      acc += dt;
-      let guard = 4;
-      while (acc >= tick && guard > 0 && getOutcome(state) === "playing") {
-        acc -= tick;
-        guard -= 1;
-        advance();
-      }
-      tickPart = getOutcome(state) === "playing" ? Math.min(1, acc / tick) : 1;
+  if (running && !paused && !ready) {
+    const tick = speedFor(state);
+    acc += dt;
+    let guard = 4;
+    while (acc >= tick && guard > 0 && getOutcome(state) === "playing") {
+      acc -= tick;
+      guard -= 1;
+      advance();
     }
+    tickPart = getOutcome(state) === "playing" ? Math.min(1, acc / tick) : 1;
   }
   updateParticles(dt);
   draw();
@@ -490,9 +484,9 @@ function setPaused(on) {
   $("#pause").textContent = on ? "▶" : "॥";
 }
 
+/** 開局與過關後停在原地，等玩家自己按方向鍵起步。 */
 function startReady() {
   ready = true;
-  readyLeft = 1500;
   acc = 0;
   tickPart = 0;
 }
@@ -507,7 +501,11 @@ for (const btn of document.querySelectorAll(".pad-btn[data-dir]")) {
 $("#pause").onclick = () => setPaused(!paused);
 
 document.addEventListener("keydown", (e) => {
-  if ($("#game").hidden || !$("#confirm").hidden || !$("#overlay").hidden) return;
+  if (!$("#confirm").hidden) {
+    if (e.key === "Escape") closeConfirm(false);
+    return;
+  }
+  if ($("#game").hidden || !$("#overlay").hidden) return;
   if (e.key === " ") {
     e.preventDefault();
     setPaused(!paused);
