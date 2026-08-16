@@ -1,1 +1,117 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#090b18"><meta name="description" content="穿過逐關增加的石燈障礙，或在無盡模式挑戰最高長度。"><title>燈籠蛇</title><link rel="stylesheet" href="./styles.css"></head><body><main><header class="top"><div><p class="eyebrow">蛇形闖關</p><h1>燈籠蛇</h1></div><button id="sound" class="sound" type="button" aria-pressed="true">♪ 音樂開</button></header><section id="lobby" class="panel"><img class="lobby-art" src="./assets/images/cover.png" alt=""><p class="blurb">穿過逐關增加的石燈障礙，或在無盡模式挑戰最高長度。</p><div class="options"><label>模式<select id="mode"><option value="levels">五關巡燈</option><option value="endless">無盡夜行</option></select></label></div><button id="start" class="primary" type="button">開始挑戰</button><p class="meta">本機最佳 <strong id="best">0</strong> · <a href="./ATTRIBUTION.md">素材署名</a></p></section><section id="game" hidden><div class="gamebar"><span id="badge" class="badge">進行中</span><p id="hud"></p></div><div class="stage-wrap"><canvas id="stage" width="800" height="450" aria-label="燈籠蛇遊戲畫面"></canvas></div><p id="message" class="message" aria-live="polite"></p><div id="controls" class="controls" aria-label="遊戲控制"></div></section></main><script type="module" src="./app.js"></script></body></html>
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#120a1e" />
+    <meta
+      name="description"
+      content="夜市裡的燈籠蛇：方向鍵或觸控方向墊操蛇即時移動，吃燈籠變長，六關巡燈或無盡夜行。"
+    />
+    <title>燈籠蛇</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="brand">
+          <small>夜市蛇行</small>
+          <h1>燈籠蛇</h1>
+        </div>
+        <button id="sound" class="ghost" aria-pressed="true">♫ 音效</button>
+      </header>
+
+      <section id="lobby" class="panel">
+        <p class="lead">
+          夜市打烊前，把街上的燈籠一顆顆吞進肚子。蛇會自己一直往前走，你只負責轉彎——
+          撞到圍籬、攤位或自己的身體就結束。
+        </p>
+
+        <div class="field">
+          <span class="field-label">模式</span>
+          <div class="segmented" id="mode-pick" role="radiogroup" aria-label="模式">
+            <button type="button" role="radio" data-mode="levels" aria-checked="true">
+              六關巡燈<i>吃夠燈籠過關，攤位越來越多</i>
+            </button>
+            <button type="button" role="radio" data-mode="endless" aria-checked="false">
+              無盡夜行<i>越吃越快，攤位一直冒出來</i>
+            </button>
+          </div>
+        </div>
+
+        <div class="field" id="level-field">
+          <span class="field-label">從第幾關開始<small id="level-hint"></small></span>
+          <div class="levels" id="level-pick" role="radiogroup" aria-label="起始關卡"></div>
+        </div>
+
+        <ul class="rules">
+          <li><b>不能回頭。</b>只能左右轉，不能一百八十度掉頭</li>
+          <li><b>燈籠會變長。</b>紅燈籠加一節；<b>金燈籠</b>限時出現，加兩節、分數更高</li>
+          <li><b>尾巴讓得出來。</b>正要空出來的尾巴格可以鑽，緊急時能救一命</li>
+        </ul>
+
+        <p class="record">
+          最佳成績 · 巡燈 <strong id="best-levels">0</strong> · 無盡 <strong id="best-endless">0</strong>
+        </p>
+        <div class="lobby-actions">
+          <button id="start" class="primary">開始</button>
+        </div>
+        <a class="credits-link" href="./ATTRIBUTION.md">製作與素材署名</a>
+      </section>
+
+      <section id="game" hidden>
+        <div class="hud" id="hud"></div>
+
+        <div class="stage-wrap">
+          <div class="lantern-line" aria-hidden="true"></div>
+          <canvas id="stage" aria-label="夜市街道，用方向鍵或下方方向墊操控燈籠蛇"></canvas>
+        </div>
+
+        <p id="msg" class="msg" aria-live="polite"></p>
+
+        <div class="side">
+          <div class="pad" id="pad" role="group" aria-label="方向墊">
+            <button type="button" class="pad-btn up" data-dir="N" aria-label="上">▲</button>
+            <button type="button" class="pad-btn left" data-dir="W" aria-label="左">◀</button>
+            <button type="button" class="pad-btn pause" id="pause" aria-pressed="false" aria-label="暫停">॥</button>
+            <button type="button" class="pad-btn right" data-dir="E" aria-label="右">▶</button>
+            <button type="button" class="pad-btn down" data-dir="S" aria-label="下">▼</button>
+          </div>
+
+          <div class="controls">
+            <button id="quit" class="ghost danger-ghost">收攤回大廳</button>
+          </div>
+        </div>
+
+        <p class="hint">鍵盤：方向鍵／WASD 轉彎，空白鍵暫停。手機：點方向墊，或直接在畫面上滑。</p>
+      </section>
+
+      <div id="overlay" class="overlay" hidden>
+        <div class="overlay-card" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
+          <h2 id="overlay-title"></h2>
+          <p id="overlay-body"></p>
+          <ul id="overlay-stats" class="overlay-stats"></ul>
+          <div id="overlay-actions" class="overlay-actions"></div>
+        </div>
+      </div>
+
+      <div id="confirm" class="overlay" hidden>
+        <div
+          class="overlay-card confirm-card"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="confirm-title"
+          aria-describedby="confirm-body"
+        >
+          <h2 id="confirm-title"></h2>
+          <p id="confirm-body"></p>
+          <div class="overlay-actions">
+            <button id="confirm-cancel" class="primary">取消</button>
+            <button id="confirm-ok" class="danger">確定</button>
+          </div>
+        </div>
+      </div>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

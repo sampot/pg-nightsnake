@@ -1,32 +1,81 @@
+const SFX = {
+  eat: "./assets/audio/eat.ogg",
+  golden: "./assets/audio/golden.ogg",
+  turn: "./assets/audio/turn.ogg",
+  stall: "./assets/audio/stall.ogg",
+  click: "./assets/audio/click.ogg",
+  crash: "./assets/audio/crash.ogg",
+  level: "./assets/audio/level.ogg",
+  over: "./assets/audio/over.ogg",
+};
+
+const MUSIC = "./assets/audio/music.ogg";
+const MUSIC_VOLUME = 0.22;
+
 export class GameAudio {
   constructor() {
     this.enabled = true;
-    this.started = false;
-    this.music = new Audio("./assets/audio/music.ogg");
-    this.music.loop = true;
-    this.music.volume = 0.28;
-    this.fx = {
-      click: Object.assign(new Audio("./assets/audio/click.ogg"), { volume: 0.4 }),
-      ok: Object.assign(new Audio("./assets/audio/ok.ogg"), { volume: 0.45 }),
-      hit: Object.assign(new Audio("./assets/audio/hit.ogg"), { volume: 0.5 }),
-      soft: Object.assign(new Audio("./assets/audio/soft.ogg"), { volume: 0.4 }),
-      coin: Object.assign(new Audio("./assets/audio/coin.ogg"), { volume: 0.45 }),
-    };
+    this.ctx = null;
+    this.buffers = new Map();
+    this.music = null;
+    this.musicGain = null;
   }
+
+  /** 必須由使用者手勢觸發（瀏覽器 autoplay 政策）。 */
   async start() {
-    this.started = true;
-    if (!this.enabled) return;
-    try { await this.music.play(); } catch {}
+    this.ctx ??= new AudioContext();
+    await this.ctx.resume();
+    await Promise.all(Object.entries(SFX).map(([name, url]) => this.#load(name, url)));
+    await this.#startMusic();
   }
+
+  async #load(name, url) {
+    if (this.buffers.has(name)) return;
+    try {
+      const res = await fetch(url);
+      this.buffers.set(name, await this.ctx.decodeAudioData(await res.arrayBuffer()));
+    } catch {
+      this.buffers.set(name, null);
+    }
+  }
+
+  async #startMusic() {
+    if (this.music || !this.ctx) return;
+    try {
+      const res = await fetch(MUSIC);
+      const buffer = await this.ctx.decodeAudioData(await res.arrayBuffer());
+      const source = this.ctx.createBufferSource();
+      const gain = this.ctx.createGain();
+      source.buffer = buffer;
+      source.loop = true;
+      gain.gain.value = this.enabled ? MUSIC_VOLUME : 0;
+      source.connect(gain).connect(this.ctx.destination);
+      source.start();
+      this.music = source;
+      this.musicGain = gain;
+    } catch {}
+  }
+
+  play(name, { volume = 0.5, rate = 1 } = {}) {
+    const buffer = this.buffers.get(name);
+    if (!this.enabled || !this.ctx || !buffer) return;
+    const source = this.ctx.createBufferSource();
+    const gain = this.ctx.createGain();
+    source.buffer = buffer;
+    source.playbackRate.value = rate;
+    gain.gain.value = volume;
+    source.connect(gain).connect(this.ctx.destination);
+    source.start();
+  }
+
   setEnabled(on) {
     this.enabled = on;
-    if (!on) this.music.pause();
-    else if (this.started) void this.start();
+    if (this.musicGain) this.musicGain.gain.value = on ? MUSIC_VOLUME : 0;
   }
-  play(name) {
-    if (!this.enabled || !this.fx[name]) return;
-    const a = this.fx[name];
-    a.currentTime = 0;
-    void a.play().catch(() => {});
+
+  /** 暫停時把音樂壓小聲，回來再拉回去。 */
+  duck(on) {
+    if (!this.musicGain) return;
+    this.musicGain.gain.value = this.enabled ? (on ? MUSIC_VOLUME * 0.3 : MUSIC_VOLUME) : 0;
   }
 }
