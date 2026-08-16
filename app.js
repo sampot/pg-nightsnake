@@ -1,118 +1,93 @@
-import { createGame, applyAction, getLegalActions, summarize, getOutcome } from "./game.js";
+import { createGame, applyAction, step, summarize, getOutcome, COLS, ROWS } from "./game.js";
 import { GameAudio } from "./audio.js";
 import { loadProgress, saveProgress } from "./persist.js";
 
+const canvas = document.querySelector("#stage");
+const ctx = canvas.getContext("2d");
 const audio = new GameAudio();
-let state = createGame({ seed: Date.now() % 9999 });
+const cell = 24;
+canvas.width = COLS * cell;
+canvas.height = ROWS * cell;
+
+let state = createGame({ mode: "levels" });
 let progress = {};
+const $ = (s) => document.querySelector(s);
 
-const $ = (sel) => document.querySelector(sel);
+const dirs = { ArrowUp: "N", ArrowDown: "S", ArrowLeft: "W", ArrowRight: "E", w: "N", s: "S", a: "W", d: "E" };
+addEventListener("keydown", (e) => {
+  const d = dirs[e.key];
+  if (!d) return;
+  e.preventDefault();
+  state = applyAction(state, d);
+  audio.play("soft");
+});
 
-function label(action) {
-  const map = {
-    punch: "拳", kick: "踢", block: "防", special: "大招",
-    move: "前進", attack: "攻擊", accel: "加速", drift: "漂移", nitro: "氮氣",
-    pass: "傳球", shoot: "射門", tackle: "搶斷", press: "高壓",
-    powerUp: "力度+", powerDown: "力度-", throw: "投球",
-    ollie: "跳躍", grind: "磨桿", manual: "手動",
-    bank: "側滾", fire: "開火", flare: "熱焰彈",
-    slash: "斬擊", skill: "技能", potion: "符水",
-    wait: "待機", nextUnit: "換單位",
-    N: "↑", E: "→", S: "↓", W: "←",
-  };
-  return map[action] || action;
+for (const [id, d] of [
+  ["n", "N"],
+  ["e", "E"],
+  ["s", "S"],
+  ["w", "W"],
+]) {
+  document.querySelector(`#d-${id}`).addEventListener("pointerdown", () => {
+    state = applyAction(state, d);
+    audio.play("click");
+  });
 }
 
-function render() {
-  const view = summarize(state);
-  const outcome = getOutcome(state);
-  $("#msg").textContent = view.msg || "";
-  $("#hud").textContent = Object.entries(view)
-    .filter(([k]) => !["msg", "outcome", "log", "flags", "you", "foe", "guesses", "loot", "enemies", "upgrades"].includes(k))
-    .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`)
-    .join(" · ");
-  const extras = [];
-  if (view.log) extras.push(view.log.join(" / "));
-  if (view.you) extras.push("我軍 "+view.you.join(", "));
-  if (view.foe) extras.push("敵軍 "+view.foe.join(", "));
-  if (view.guesses) extras.push(view.guesses.join(" | "));
-  if (view.loot) extras.push("loot "+view.loot.join(","));
-  $("#extra").textContent = extras.join("\n");
-  const board = $("#board");
-  board.innerHTML = "";
-  const hero = document.createElement("img");
-  hero.src = "./assets/images/hero.png";
-  hero.alt = "";
-  hero.className = "sprite hero";
-  board.appendChild(hero);
-  const rival = document.createElement("img");
-  rival.src = "./assets/images/rival.png";
-  rival.onerror = () => { rival.src = "./assets/images/enemy.png"; rival.onerror = () => { rival.remove(); }; };
-  rival.alt = "";
-  rival.className = "sprite rival";
-  board.appendChild(rival);
-  const meter = document.createElement("div");
-  meter.className = "meter";
-  const fill = document.createElement("i");
-  fill.style.width = `${clampMeter(view)}%`;
-  meter.appendChild(fill);
-  board.appendChild(meter);
-
-  const actions = $("#actions");
-  actions.innerHTML = "";
-  for (const a of getLegalActions(state)) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = label(a);
-    btn.addEventListener("click", () => {
-      audio.play(a === "special" || a === "fire" || a === "fight" ? "hit" : "click");
-      state = applyAction(state, a);
-      render();
-      void persist();
-    });
-    actions.appendChild(btn);
+function draw() {
+  ctx.fillStyle = "#1a0f08";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      if ((x + y) % 2 === 0) {
+        ctx.fillStyle = "#24160c";
+        ctx.fillRect(x * cell, y * cell, cell, cell);
+      }
+    }
   }
-  if (outcome !== "playing") {
-    const again = document.createElement("button");
-    again.type = "button";
-    again.className = "primary";
-    again.textContent = outcome === "won" ? "再來一局（勝）" : "再試一次";
-    again.addEventListener("click", () => {
-      audio.play("ok");
-      state = createGame({ seed: Date.now() % 9999 });
-      render();
-    });
-    actions.appendChild(again);
-  }
-  $("#badge").textContent = outcome === "playing" ? "進行中" : outcome === "won" ? "勝利" : "結束";
-}
-
-function clampMeter(view) {
-  if (typeof view.meter === "number") return Math.max(0, Math.min(100, view.meter));
-  if (typeof view.progress === "number") return view.progress;
-  if (typeof view.score === "number") return Math.min(100, view.score);
-  return 10;
+  // food lantern
+  ctx.fillStyle = "#ff9e00";
+  ctx.beginPath();
+  ctx.arc(state.food.x * cell + cell / 2, state.food.y * cell + cell / 2, cell * 0.35, 0, Math.PI * 2);
+  ctx.fill();
+  state.body.forEach((p, i) => {
+    ctx.fillStyle = i === 0 ? "#ffe08a" : "#ffb703";
+    ctx.fillRect(p.x * cell + 2, p.y * cell + 2, cell - 4, cell - 4);
+  });
+  const v = summarize(state);
+  $("#msg").textContent = v.msg;
+  $("#hud").textContent = `關卡 ${v.level} · 分數 ${v.score} · ${v.eaten}/${v.target}`;
+  $("#badge").textContent = v.outcome === "playing" ? "進行中" : v.outcome === "won" ? "通關" : "結束";
 }
 
 async function persist() {
-  const outcome = getOutcome(state);
-  const view = summarize(state);
-  progress = {
-    ...progress,
-    bestScore: Math.max(progress.bestScore || 0, view.score || 0),
-    wins: (progress.wins || 0) + (outcome === "won" ? 1 : 0),
-    last: view,
-  };
-  $("#best").textContent = String(progress.bestScore || 0);
-  if (outcome === "won" || outcome === "lost") await saveProgress(progress);
+  const o = getOutcome(state);
+  if (o === "playing") return;
+  progress.best = Math.max(progress.best || 0, state.score);
+  $("#best").textContent = String(progress.best || 0);
+  await saveProgress(progress);
+}
+
+let acc = 0;
+let last = performance.now();
+function loop(now) {
+  const dt = now - last;
+  last = now;
+  if (!$("#game").hidden && getOutcome(state) === "playing") {
+    acc += dt;
+    while (acc > 16) {
+      step(state);
+      acc -= 16;
+    }
+    void persist();
+  }
+  draw();
+  requestAnimationFrame(loop);
 }
 
 async function boot() {
   progress = await loadProgress();
-  $("#best").textContent = String(progress.bestScore || 0);
-  $("#title").textContent = "燈籠蛇";
-  $("#blurb").textContent = "關卡＋無盡雙模式。";
-  $("#genre").textContent = "蛇";
+  $("#best").textContent = String(progress.best || 0);
   $("#sound").addEventListener("click", async () => {
     const on = $("#sound").getAttribute("aria-pressed") !== "true";
     $("#sound").setAttribute("aria-pressed", String(on));
@@ -120,13 +95,20 @@ async function boot() {
     audio.setEnabled(on);
     if (on) await audio.start();
   });
-  $("#start").addEventListener("click", async () => {
+  const start = async (mode) => {
     await audio.start();
     audio.play("ok");
+    state = createGame({ mode, seed: Date.now() % 9999 });
     $("#lobby").hidden = true;
     $("#game").hidden = false;
-    render();
+  };
+  $("#start-levels").addEventListener("click", () => start("levels"));
+  $("#start-endless").addEventListener("click", () => start("endless"));
+  $("#again").addEventListener("click", () => {
+    audio.play("ok");
+    state = createGame({ mode: state.mode, seed: Date.now() % 9999 });
   });
+  requestAnimationFrame(loop);
 }
 
 boot();

@@ -4,38 +4,38 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="theme-color" content="#1a0f08" />
-    <meta name="description" content="關卡＋無盡雙模式。" />
     <title>燈籠蛇</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="glow" aria-hidden="true"></div>
     <main>
       <header class="top">
         <div>
-          <p class="eyebrow" id="genre">蛇</p>
-          <h1 id="title">燈籠蛇</h1>
+          <p class="eyebrow">蛇</p>
+          <h1>燈籠蛇</h1>
         </div>
         <button id="sound" class="icon" type="button" aria-pressed="true">♪ 音樂開</button>
       </header>
-
       <section id="lobby" class="panel">
-        <img class="hero-art" src="./assets/images/hero.png" alt="" width="120" height="120" />
-        <p id="blurb">關卡＋無盡雙模式。</p>
-        <p class="meta">本機最佳分 <strong id="best">0</strong></p>
-        <button id="start" class="primary" type="button">開始</button>
+        <p>吃下燈籠變長。關卡五關，或挑戰無盡。</p>
+        <p class="meta">最高分 <strong id="best">0</strong></p>
+        <button id="start-levels" class="primary" type="button">關卡模式</button>
+        <button id="start-endless" class="ghost" type="button">無盡模式</button>
         <p class="fine"><a href="./ATTRIBUTION.md">署名</a></p>
       </section>
-
       <section id="game" hidden>
-        <div class="status">
-          <span id="badge">進行中</span>
-          <p id="hud"></p>
-        </div>
-        <div id="board" class="board" aria-hidden="true"></div>
+        <div class="status"><span id="badge">進行中</span><p id="hud"></p></div>
+        <canvas id="stage" aria-label="燈籠蛇棋盤"></canvas>
         <p id="msg" class="msg" aria-live="polite"></p>
-        <pre id="extra" class="extra"></pre>
-        <div id="actions" class="actions"></div>
+        <div class="pad" aria-label="方向">
+          <button id="d-n" type="button">▲</button>
+          <div class="mid">
+            <button id="d-w" type="button">◀</button>
+            <button id="d-e" type="button">▶</button>
+          </div>
+          <button id="d-s" type="button">▼</button>
+        </div>
+        <button id="again" class="ghost" type="button">再來</button>
       </section>
     </main>
     <script type="module" src="./app.js"></script>
