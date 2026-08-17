@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "rev": "a23141d",
+  "files": [
+    ".vite/vitest/results.json",
+    "app.js",
+    "assets/audio/click.ogg",
+    "assets/audio/crash.ogg",
+    "assets/audio/eat.ogg",
+    "assets/audio/golden.ogg",
+    "assets/audio/level.ogg",
+    "assets/audio/music.ogg",
+    "assets/audio/over.ogg",
+    "assets/audio/stall.ogg",
+    "assets/audio/turn.ogg",
+    "assets/images/garland.png",
+    "assets/images/night.png",
+    "assets/licenses/kenney-impact-sounds.txt",
+    "assets/licenses/kenney-interface-sounds.txt",
+    "assets/licenses/kenney-music-jingles.txt",
+    "assets/licenses/kenney-particle-pack.txt",
+    "assets/licenses/kenney-roguelike-modern-city.txt",
+    "assets/licenses/kenney-tiny-creatures.txt",
+    "assets/licenses/not-jam-music-pack.txt",
+    "audio.js",
+    "functions.js",
+    "game.js",
+    "index.html",
+    "persist.js",
+    "styles.css"
+  ]
+}
